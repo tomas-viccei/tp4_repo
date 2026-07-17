@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
-EstimAR — Prediccion de pozos de hidrocarburos de Argentina
-TP4 | IA y Aprendizaje Automatico I — UCA 2026
+EstimAR — Predicción de pozos de hidrocarburos de Argentina
+TP4 | IA y Aprendizaje Automático I — UCA 2026
 Autores: Andrisani, Feser, Lauria, Viccei.
 """
 from datetime import datetime
@@ -95,6 +95,10 @@ REF = {
         "edges_max": 10.19},
     "mediana_por_cuenca": {"NOROESTE": 117.8, "CUYANA": 67.8, "NEUQUINA": 42.6,
                            "GOLFO SAN JORGE": 42.3, "AUSTRAL": 25.6},
+    "mediana_por_tipopozo": {"Petrolífero": 45.5, "Gasífero": 11.4,
+                              "Otro tipo": 18.7, "Inyección de Agua": 16.3,
+                              "Acuífero": 13.7, "Inyección de Gas": 4.9,
+                              "Sumidero": 558.2},
     "tasa_activo_por_extraccion": {
         "Plunger Lift": 0.773, "Surgencia Natural": 0.697, "Cavidad Progresiva": 0.678,
         "Electrosumergible": 0.629, "Gas Lift": 0.616, "Bombeo Mecánico": 0.560,
@@ -110,7 +114,7 @@ REF = {
                                    "cuenca": 0.012, "mes": 0.003, "profundidad": 0.001},
 }
 
-NAV_OPTIONS = ["Prediccion individual", "Carga masiva", "Sobre el proyecto"]
+NAV_OPTIONS = ["Predicción individual", "Carga masiva", "Sobre el proyecto"]
 
 # ─── PALETA Y LAYOUT DE CHARTS ──────────────────────────────────────────────
 PALETTE = {
@@ -157,16 +161,16 @@ def validar_entrada(fila: dict) -> list[dict]:
     if fila['provincia'] not in CUENCA_PROVINCIAS.get(fila['cuenca'], []):
         avisos.append({
             'level': 'warning',
-            'msg': f"La combinacion cuenca **{fila['cuenca']}** + provincia "
-                   f"**{fila['provincia']}** no se observa en el dataset: la prediccion "
-                   f"se realizara por extrapolacion y es menos confiable."
+            'msg': f"La combinación cuenca **{fila['cuenca']}** + provincia "
+                   f"**{fila['provincia']}** no se observa en el dataset: la predicción "
+                   f"se realizará por extrapolación y es menos confiable."
         })
     if (fila['tipoextraccion'] == 'Sin Sistema de Extracción'
             and fila['tipopozo'] == 'Petrolífero'):
         avisos.append({
             'level': 'info',
-            'msg': "Un pozo petrolifero sin sistema de extraccion suele estar inactivo; "
-                   "la produccion esperada sera muy baja."
+            'msg': "Un pozo petrolífero sin sistema de extracción suele estar inactivo; "
+                   "la producción esperada será muy baja."
         })
     return avisos
 
@@ -198,26 +202,26 @@ with st.sidebar:
     st.markdown(
         '<div class="brand-block">'
         '<div class="brand">Estim<span>AR</span></div>'
-        '<div class="tagline">Estimador de produccion y estado '
+        '<div class="tagline">Estimador de producción y estado '
         'operativo de pozos de hidrocarburos</div>'
         '</div>',
         unsafe_allow_html=True)
     st.divider()
-    pagina = st.radio("Navegacion", NAV_OPTIONS, label_visibility="collapsed")
+    pagina = st.radio("Navegación", NAV_OPTIONS, label_visibility="collapsed")
     st.divider()
     st.markdown(
         '<p class="sidebar-footer">'
         'Modelos XGBoost entrenados sobre 872.186 registros '
-        'de la Secretaria de Energia (Cap. IV).<br><br>'
-        'TP4 -- IA y Aprendizaje Automatico I -- UCA 2026.<br>'
+        'de la Secretaría de Energía (Cap. IV).<br><br>'
+        'TP4 -- IA y Aprendizaje Automático I -- UCA 2026.<br>'
         'Andrisani, Feser, Lauria, Viccei.</p>',
         unsafe_allow_html=True)
 
 reg_model, clf_model = cargar_modelos()
 
-# ─── PREDICCION INDIVIDUAL ──────────────────────────────────────────────────
-if pagina == "Prediccion individual":
-    st.subheader("Estimar produccion y estado operativo")
+# ─── PREDICCIÓN INDIVIDUAL ──────────────────────────────────────────────────
+if pagina == "Predicción individual":
+    st.subheader("Estimar producción y estado operativo")
 
     with st.container(border=True):
         c1, c2 = st.columns(2)
@@ -225,15 +229,15 @@ if pagina == "Prediccion individual":
             cuenca = st.selectbox("Cuenca", list(CUENCA_PROVINCIAS.keys()), key='cuenca')
             prov = st.selectbox("Provincia", CUENCA_PROVINCIAS[cuenca], key='prov')
             rec = st.selectbox("Tipo de recurso", TIPOS_RECURSO, key='rec')
-            prof = st.number_input("Profundidad (m)", min_value=PROF_MIN,
-                                   max_value=PROF_MAX, value=PROF_MEDIANA,
-                                   step=50.0, key='prof',
-                                   help=f"Rango: {PROF_MIN:.0f} -- {PROF_MAX:.0f} m")
+            prof = st.slider("Profundidad (m)", min_value=PROF_MIN,
+                            max_value=PROF_MAX, value=PROF_MEDIANA,
+                            step=50.0, key='prof',
+                            help=f"Rango: {PROF_MIN:.0f} -- {PROF_MAX:.0f} m")
         with c2:
             tpozo = st.selectbox("Tipo de pozo", TIPOS_POZO, key='tpozo',
                                  help="Modelo entrenado principalmente sobre pozos "
-                                      "petroliferos y gasiferos.")
-            extr = st.selectbox("Sistema de extraccion", TIPOS_EXTRACCION, key='extr')
+                                      "petrolíferos y gasíferos.")
+            extr = st.selectbox("Sistema de extracción", TIPOS_EXTRACCION, key='extr')
             mes = st.segmented_control("Mes del año", options=list(range(1, 13)),
                                        default=6, key='mes')
 
@@ -269,13 +273,15 @@ if pagina == "Prediccion individual":
         st.markdown("---")
 
         with st.container(border=True):
-            st.markdown("**Produccion estimada**")
+            st.markdown("**Producción estimada**")
             m1, m2, m3 = st.columns(3)
-            m1.metric("Produccion mensual", f"{pred:,.1f} m3/mes")
+            m1.metric("Producción mensual", f"{pred:,.1f} m3/mes")
             m2.metric("Barriles/dia", f"{pred * 6.2898 / 30:,.1f} bbl/d")
-            m3.metric("Mediana nacional", f"{q['p50']:.1f} m3/mes")
+            tpozo_sel = r['input']['tipopozo']
+            mediana_ref = REF['mediana_por_tipopozo'].get(tpozo_sel, q['p50'])
+            m3.metric(f"Mediana {tpozo_sel}", f"{mediana_ref:.1f} m3/mes")
             st.caption("MAE del modelo en test: ~105 m3/mes. El error crece en pozos "
-                       "de muy alta produccion.")
+                       "de muy alta producción.")
 
             counts = REF['hist_log1p']['counts']
             edges = np.linspace(0, REF['hist_log1p']['edges_max'], len(counts) + 1)
@@ -285,7 +291,7 @@ if pagina == "Prediccion individual":
                                    opacity=0.6, name='Pozos productores'))
             fig.add_vline(x=float(np.log1p(pred)),
                           line_color=PALETTE['highlight'], line_width=3,
-                          annotation_text=f"Prediccion: {pred:,.0f} m3",
+                          annotation_text=f"Predicción: {pred:,.0f} m3",
                           annotation_position="top right",
                           annotation_font_color=PALETTE['highlight'])
             for et, v in [('P25', q['p25']), ('Mediana', q['p50']),
@@ -295,8 +301,8 @@ if pagina == "Prediccion individual":
                               annotation_text=et, annotation_position="bottom",
                               annotation_font_color=PALETTE['neutral'])
             fig.update_layout(**PLOTLY_LAYOUT,
-                              title='Prediccion en la distribucion historica (escala log1p)',
-                              xaxis_title='log1p(produccion, m3/mes)',
+                              title='Predicción en la distribución histórica (escala log1p)',
+                              xaxis_title='log1p(producción, m3/mes)',
                               yaxis_title='Registros')
             st.plotly_chart(fig, use_container_width=True)
 
@@ -315,7 +321,7 @@ if pagina == "Prediccion individual":
                     r['extr'], REF['tasa_activo_global'])
                 st.caption(
                     f"Referencia: {base * 100:.1f}% de registros con {r['extr']} "
-                    f"estan activos (promedio nacional: "
+                    f"están activos (promedio nacional: "
                     f"{REF['tasa_activo_global'] * 100:.1f}%).")
             with col_chart:
                 fig = go.Figure(go.Bar(
@@ -332,7 +338,7 @@ if pagina == "Prediccion individual":
                                   title='Probabilidades por clase',
                                   xaxis=dict(range=[0, 1], title='Probabilidad'))
                 st.plotly_chart(fig, use_container_width=True)
-            st.caption("Recall de Activo: 0,99 en test. Precision de Activo: ~0,74.")
+            st.caption("Recall de Activo: 0,99 en test. Precisión de Activo: ~0,74.")
 
 # ─── CARGA MASIVA ────────────────────────────────────────────────────────────
 elif pagina == "Carga masiva":
@@ -366,12 +372,12 @@ elif pagina == "Carga masiva":
                              | ~lote['mes'].between(1, 12))
                 if invalidas.any():
                     st.warning(f"Se descartaron {int(invalidas.sum())} filas con valores "
-                               "fuera de rango o no numericos.")
+                               "fuera de rango o no numéricos.")
                     lote = lote[~invalidas]
                 if len(lote) == 0:
-                    st.error("No quedaron filas validas para predecir.")
+                    st.error("No quedaron filas válidas para predecir.")
                 elif len(lote) > 50000:
-                    st.error("Maximo 50.000 filas por carga.")
+                    st.error("Máximo 50.000 filas por carga.")
                 else:
                     with st.spinner(f"Procesando {len(lote):,} registros..."):
                         X = lote[FEATURES].astype({'mes': int})
@@ -394,8 +400,8 @@ elif pagina == "Carga masiva":
 # ─── SOBRE EL PROYECTO ──────────────────────────────────────────────────────
 elif pagina == "Sobre el proyecto":
     st.subheader("Sobre el proyecto")
-    st.caption("Proyecto integrador TP1--TP4 sobre datos de produccion de pozos "
-               "de gas y petroleo de la Secretaria de Energia de la Nacion.")
+    st.caption("Proyecto integrador TP1--TP4 sobre datos de producción de pozos "
+               "de gas y petróleo de la Secretaría de Energía de la Nación.")
 
     m1, m2, m3 = st.columns(3)
     m1.metric("Registros procesados", "872.186")
@@ -406,20 +412,20 @@ elif pagina == "Sobre el proyecto":
 
     c1, c2 = st.columns(2)
     with c1:
-        st.markdown("**Modelo de produccion (TP2)**")
+        st.markdown("**Modelo de producción (TP2)**")
         st.markdown(
             "- **Objetivo:** estimar `prod_pet` (m3/mes) de un pozo productivo.\n"
-            "- **Algoritmo:** XGBoost con transformacion `log1p` del objetivo.\n"
-            "- **Desempeno:** R2 = 0.459, RMSE ~ 434, MAE ~ 106 m3/mes.\n"
+            "- **Algoritmo:** XGBoost con transformación `log1p` del objetivo.\n"
+            "- **Desempeño:** R2 = 0.459, RMSE ~ 434, MAE ~ 106 m3/mes.\n"
             "- **Variables:** solo atributos estructurales; se excluye la "
-            "co-produccion para evitar *data leakage*."
+            "co-producción para evitar *data leakage*."
         )
     with c2:
         st.markdown("**Modelo de estado (TP3)**")
         st.markdown(
             "- **Objetivo:** clasificar `estado_binario` (Activo / Inactivo).\n"
-            "- **Algoritmo:** XGBoost con particion estratificada y agrupada por pozo.\n"
-            "- **Desempeno:** F1 ponderado = 0.880, AUC = 0.944, recall Activo = 0.985.\n"
+            "- **Algoritmo:** XGBoost con partición estratificada y agrupada por pozo.\n"
+            "- **Desempeño:** F1 ponderado = 0.880, AUC = 0.944, recall Activo = 0.985.\n"
             "- **Balance de clases:** 33.9% Activo / 66.1% Inactivo."
         )
 
@@ -435,8 +441,8 @@ elif pagina == "Sobre el proyecto":
                         'Importancia de variables -- clasificador'),
                         use_container_width=True)
 
-    st.caption("En ambos modelos, el sistema de extraccion y el tipo de pozo "
-               "concentran la senal. La profundidad y el mes aportan poco.")
+    st.caption("En ambos modelos, el sistema de extracción y el tipo de pozo "
+               "concentran la señal. La profundidad y el mes aportan poco.")
 
     st.divider()
     st.markdown("**Referencias del parque nacional (2025)**")
@@ -446,7 +452,7 @@ elif pagina == "Sobre el proyecto":
         fig = go.Figure(go.Bar(x=list(med.values()), y=list(med.keys()),
                                orientation='h', marker_color=PALETTE['primary']))
         fig.update_layout(**PLOTLY_LAYOUT,
-                          title='Mediana de produccion por cuenca',
+                          title='Mediana de producción por cuenca',
                           xaxis_title='m3/mes')
         st.plotly_chart(fig, use_container_width=True)
     with c2:
@@ -458,12 +464,12 @@ elif pagina == "Sobre el proyecto":
                       annotation_text='promedio nacional',
                       annotation_font_color=PALETTE['neutral'])
         fig.update_layout(**PLOTLY_LAYOUT,
-                          title='% activos por sistema de extraccion',
+                          title='% activos por sistema de extracción',
                           xaxis_title='% activo')
         st.plotly_chart(fig, use_container_width=True)
 
     st.divider()
-    st.markdown("**Log de predicciones (sesion)**")
+    st.markdown("**Log de predicciones (sesión)**")
     if st.session_state.get('log'):
         log_df = pd.DataFrame(st.session_state['log'])
         st.dataframe(log_df, use_container_width=True)
@@ -471,10 +477,10 @@ elif pagina == "Sobre el proyecto":
                            log_df.to_csv(index=False).encode('utf-8'),
                            "log_predicciones.csv", "text/csv")
     else:
-        st.caption("Sin predicciones aun.")
+        st.caption("Sin predicciones aún.")
 
 # ─── FOOTER ──────────────────────────────────────────────────────────────────
-st.markdown('<p class="disclaimer">EstimAR -- Uso academico. Las predicciones son '
-            'estimaciones estadisticas y no reemplazan estudios de ingenieria de '
-            'reservorios. Fuente: Secretaria de Energia de la Nacion.</p>',
+st.markdown('<p class="disclaimer">EstimAR -- Uso académico. Las predicciones son '
+            'estimaciones estadísticas y no reemplazan estudios de ingeniería de '
+            'reservorios. Fuente: Secretaría de Energía de la Nación.</p>',
             unsafe_allow_html=True)
